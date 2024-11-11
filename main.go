@@ -63,7 +63,7 @@ func main() {
 
 	// backend
 	r.POST("/scan/image", backendHandler.AcceptScanRequest)
-	r.GET("/scan/status",backendHandler.GetScanStatus)
+	r.GET("/scan/status", backendHandler.GetScanStatus)
 
 	log.Println("initializing summary & report clients")
 	if err := report.NewReportClient(); err != nil {

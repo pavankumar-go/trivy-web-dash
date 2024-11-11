@@ -2,30 +2,10 @@ package scan
 
 import (
 	"bytes"
-	"encoding/json"
 	"errors"
 	"io"
 	"net/http"
 )
-
-type requestBody struct {
-	Image      string `json:"image"`
-	WebhookURL string `json:"webhookurl"`
-}
-
-func SendScanImageRequest(trivyWebScannerURL, trivyWebhookURL string, dockerImage string) error {
-	data := requestBody{
-		Image:      dockerImage,
-		WebhookURL: trivyWebhookURL,
-	}
-
-	reqBytes, _ := json.Marshal(data)
-	_, err := makeRequest("POST", trivyWebScannerURL, reqBytes)
-	if err != nil {
-		return err
-	}
-	return nil
-}
 
 func GetScanStatus(trivyWebScannerStatusURL string) ([]byte, error) {
 	return makeRequest("GET", trivyWebScannerStatusURL, nil)

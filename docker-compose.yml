@@ -1,0 +1,33 @@
+services:
+  trivy-web-dash:
+    build: .
+    environment:
+      REDIS: redis:6379
+      TRIVY_SERVER: http://trivy-server:4954
+    ports:
+      - "8001:8001"
+    networks:
+      - trivy
+    depends_on:
+    - redis
+    - trivy-server
+  trivy-server:
+    image: aquasec/trivy
+    container_name: trivy-server
+    environment:
+      TRIVY_DB_REPOSITORY: public.ecr.aws/aquasecurity/trivy-db,aquasec/trivy-db,ghcr.io/aquasecurity/trivy-db
+      TRIVY_JAVA_DB_REPOSITORY: public.ecr.aws/aquasecurity/trivy-java-db,aquasec/trivy-java-db,ghcr.io/aquasecurity/trivy-java-db
+    ports:
+      - "4954:4954"
+    networks:
+      - trivy
+    command: server  --listen 0.0.0.0:4954
+  redis:
+    image: redis:7
+    container_name: redis
+    ports:
+      - "6379:6379"
+    networks:
+      - trivy
+networks:
+  trivy:
