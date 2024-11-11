@@ -1,0 +1,131 @@
+<html>
+
+<head>
+   <meta charset="utf-8">
+   <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+
+   <link rel="stylesheet" href="/templates/css/index.css">
+   <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+   <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+   <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.16.0/umd/popper.min.js"></script>
+   <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+   <link rel="stylesheet" href="https://cdn.datatables.net/1.10.22/css/dataTables.bootstrap4.min.css">
+   <script src="https://cdn.datatables.net/1.10.22/js/jquery.dataTables.min.js"></script>
+   <script src="https://cdn.datatables.net/1.10.22/js/dataTables.bootstrap4.min.js"></script>
+   <link rel="stylesheet" href="https://cdn.datatables.net/1.10.22/css/dataTables.bootstrap4.min.css">
+   <script src="https://cdn.datatables.net/1.10.22/js/jquery.dataTables.min.js"></script>
+   <script src="https://cdn.datatables.net/1.10.22/js/dataTables.bootstrap4.min.js"></script>
+   <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.9.4/Chart.js"></script>
+
+</head>
+
+<style>
+   .hide {
+      position: absolute;
+      top: -1px;
+      left: -1px;
+      width: 1px;
+      height: 1px;
+   }
+</style>
+
+<iframe name="hiddenFrame" class="hide"></iframe>
+
+<body class="body">
+
+   <nav class="navbar">
+      <p id="title">VulnDB</p>
+   </nav>
+
+   <div class="summary">
+      <canvas id="vulnChart"></canvas>
+      <form class="scanImageForm" method="POST" action="/scan/image" target="hiddenFrame">
+         <input id="scanimageInput" type="text" class="imageScanInput" name="image" required
+            placeholder="  868948896061.dkr.ecr.ap-southeast-3.amazonaws.com/idi-main:main">
+         <button id="scanimage" class="imageScanBtn" type="submit" onclick="handleSubmit()">Scan</button>
+      </form>
+   </div>
+   <div class="stats">
+      <div>Scans running: {{ or .ScanStatus.Queued 0 }}</div>
+      <div>Scans pending: {{ or .ScanStatus.Pending 0 }}</div>
+      <div>Scans failed: {{ or .ScanStatus.ScanFail 0 }}</div>
+      <div>Webhooks failed: {{ or .ScanStatus.WebhookFail 0 }}</div>
+      <div>Total images scanned: {{ .TotalImages }}</div>
+      <div>Total vulnerabilities: {{ .TotalVulnerabilties }}</div>
+   </div>
+
+   <div class="summary-container">
+      <table class="table table-hover" id="summaryTable">
+         <thead>
+            <tr>
+               <th scope="col">Images</th>
+               <th scope="col">Last Scan</th>
+               <th scope="col">Critical</th>
+               <th scope="col">High</th>
+               <th scope="col">Medium</th>
+               <th scope="col">Low</th>
+            </tr>
+         </thead>
+         <tbody>
+            {{range .Summary}}
+            <tr>
+               <td class="image"><a href="report/{{ .Image }}">{{ .Image }}</td>
+               <td class="v-lastscan">{{ .LastScan }} ago</td>
+               <td class="v-critical">{{ or .VSummary.CRITICAL "-" }}</td>
+               <td class="v-high">{{ or .VSummary.HIGH "-" }}</td>
+               <td class="v-medium">{{ or .VSummary.MEDIUM "-" }}</td>
+               <td class="v-low">{{ or .VSummary.LOW "-" }}</td>
+            </tr>
+            {{end}}
+         </tbody>
+      </table>
+      </span>
+</body>
+
+<script>
+   function handleSubmit() {
+      var submitBtn = document.getElementById("scanimage");
+      submitBtn.innerHTML = "Submitted";
+      setTimeout(handleSubmitReset, 1000)
+   }
+
+   function handleSubmitReset() {
+      var submitBtn = document.getElementById("scanimage");
+      var scanimageInput = document.getElementById("scanimageInput");
+      submitBtn.innerHTML = "Scan";
+      scanimageInput.value = "";
+   }
+</script>
+
+<script>
+   $('#summaryTable').DataTable();
+
+   var xValues = ["Critical", "High", "Medium", "Low"];
+   var yValues = [{{ .TotalSeverities.Critical }}, {{ .TotalSeverities.High }}, {{ .TotalSeverities.Medium }}, {{ .TotalSeverities.Low }}];
+   var barColors = [
+      "#D3212C", // critical
+      "#FF681E", // high
+      "#FFBF00", // medium
+      "#326ce5" // low
+   ];
+
+   new Chart("vulnChart", {
+      type: "pie",
+      data: {
+         labels: xValues,
+         datasets: [{
+            backgroundColor: barColors,
+            data: yValues
+         }]
+      },
+      options: {
+         title: {
+            display: true,
+            text: "Vulnerabilities found so far"
+         }
+      }
+   });
+</script>
+
+</html>

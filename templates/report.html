@@ -1,0 +1,136 @@
+<html>
+
+<head>
+  <meta http-equiv="content-type" content="text/html; charset=UTF-8">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+  <link rel="stylesheet" href="/templates/css/report.css">
+
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js">
+  </script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.16.0/umd/popper.min.js">
+  </script>
+  <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js">
+  </script>
+  <link rel="stylesheet" href="https://cdn.datatables.net/1.10.22/css/dataTables.bootstrap4.min.css">
+  <script src="https://cdn.datatables.net/1.10.22/js/jquery.dataTables.min.js">
+  </script>
+  <script src="https://cdn.datatables.net/1.10.22/js/dataTables.bootstrap4.min.js">
+  </script>
+  <link rel="stylesheet" href="https://cdn.datatables.net/1.10.22/css/dataTables.bootstrap4.min.css">
+  <script src="https://cdn.datatables.net/1.10.22/js/jquery.dataTables.min.js">
+  </script>
+  <script src="https://cdn.datatables.net/1.10.22/js/dataTables.bootstrap4.min.js">
+  </script>
+</head>
+
+</head>
+
+<body>
+  <nav class="navbar">
+    <ul>
+      <li id="title"><a href="/"> VulnDB </a></li>
+    </ul>
+  </nav>
+
+  <div class="stats">
+    <div class="statsheader">
+      <ul>
+        <li id="lastscanned"></li>
+        <li id="lastscanned">Last Scanned</li>
+      </ul>
+      <div class="statsdata">
+        {{.LastScanAt}} ago
+      </div>
+    </div>
+    <div class="statsheader">
+      <ul>
+        <li id="critical"></li>
+        <li>Critical</li>
+      </ul>
+      <div class="statsdata">
+        {{ .TotalSeverities.Critical }}
+      </div>
+    </div>
+    <div class="statsheader">
+      <ul>
+        <li id="high"></li>
+        <li>High</li>
+      </ul>
+      <div class="statsdata">
+        {{ .TotalSeverities.High }}
+      </div>
+    </div>
+    <div class="statsheader">
+      <ul>
+        <li id="medium"></li>
+        <li>Medium</li>
+      </ul>
+      <div class="statsdata">
+        {{ or .TotalSeverities.Medium "-" }}
+      </div>
+    </div>
+    <div class="statsheader">
+      <ul>
+        <li id="low"></li>
+        <li>Low</li>
+      </ul>
+      <div class="statsdata">
+        {{ or .TotalSeverities.Low "-" }}
+      </div>
+    </div>
+  </div>
+
+  <div class="vulntable-container">
+    <table class="table table-hover w-auto" id="vulnTable">
+      {{ range .Results }}
+      <thead>
+        <tr>
+          <th scope="col" colspan="5" style="font-weight: 400;text-shadow: 10em;">{{ .Target }}</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr class="sub-header">
+          <th scope="col">Package</th>
+          <th scope="col">Severity</th>
+          <th scope="col">Fixed Version</th>
+          <th scope="col">CVE</th>
+          <th scope="col">Description</th>
+        </tr>
+        {{ if .Vulnerabilities }}
+        {{ range .Vulnerabilities }}
+        <tr>
+          <td> {{ .PkgName }} </td>
+          {{ if eq .Severity "MEDIUM" }}
+          <td style="background-color: yellow;"> {{ or .Severity "-" }}</td>
+          {{ else if eq .Severity "HIGH"}}
+          <td style="background-color: orange;"> {{ or .Severity "-" }} </td>
+          {{ else if eq .Severity "CRITICAL"}}
+          <td style="background-color: red;"> {{ or .Severity "-" }} </td>
+          {{ else if eq .Severity "LOW"}}
+          <td style="background-color:#326ce5 ;"> {{ or .Severity "-" }} </td>
+          {{end}}
+          <td> {{ .FixedVersion }} </td>
+          <td> <a href="{{.PrimaryURL}}">{{ .VulnerabilityID }}</a></td>
+          <td>{{ .Description }}</td>
+        </tr>
+        {{end}}
+        {{else}} <!-- if no vulnerabilites found mark as NA -->
+        <tr>
+          <td> Nil </td>
+          <td> Nil </td>
+          <td> Nil </td>
+          <td> Nil </td>
+          <td> Nil </td>
+        </tr>
+        {{end}}
+        {{end}}
+      </tbody>
+    </table>
+  </div>
+<!-- 
+  <script>
+    $('#summaryTable').DataTable();
+  </script> -->
+</body>
+</html>

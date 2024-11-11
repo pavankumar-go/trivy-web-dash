@@ -1,0 +1,187 @@
+:root {
+    --box-shadow: 0px 0px 0px rgba(0, 0, 0, 0.12),
+        0 2px 2px rgba(0, 0, 0, 0.12),
+        0 4px 4px rgba(0, 0, 0, 0.12),
+        0 8px 8px rgba(0, 0, 0, 0.12),
+        0 16px 16px rgba(0, 0, 0, 0.12),
+        0 20px 20px rgba(0, 0, 0, 0.12);
+
+    --custom-gray: rgb(77, 77, 82);
+    --custom-red: #D3212C;
+    --custom-orange: #FF681E;
+    --custom-yellow: #FFBF00;
+    --custom-green: #069C56;
+    --custom-blue: #326ce5;
+    --k8s-icon-color: 326ce5;
+}
+
+.body {
+    margin: 0px;
+    padding: 0px;
+}
+
+.navbar {
+    height: 8vh;
+    margin: -8px;
+    box-shadow: var(--box-shadow);
+}
+
+.navbar ul {
+    text-decoration: none;
+    list-style: none;
+    display: flex;
+    margin: 6px;
+    padding: 8px;
+}
+
+#title {
+    font-size: xx-large;
+}
+
+#title a {
+    text-decoration: none;
+    color: var(--custom-gray);
+}
+
+#scan {
+    font-size: large;
+    font-weight: 200;
+    background-color: var(--custom-gray);
+    margin-left: auto;
+    width: 110px;
+    height: 30px;
+    border-radius: 3px;
+    text-align: center;
+    position: static;
+    padding: 5px;
+    box-shadow: var(--box-shadow);
+}
+
+#scan a {
+    text-decoration: none;
+    color: white;
+}
+
+#scan a:hover {
+    text-decoration: none;
+    color: var(--k8s-icon-color);
+}
+
+.stats {
+    top: 1.3vh;
+    margin: -8px;
+    z-index: -10;
+    position: relative;
+    display: flex;
+    justify-content: space-around;
+    height: 20vh;
+    background-color: var(--custom-gray);
+}
+
+.statsheader {
+    margin: 20;
+    background-color: var(--custom-gray);
+    color: white;
+    padding: 0.9em;
+    height: 10vh;
+    width: 20vw;
+    position: relative;
+    box-shadow: var(--box-shadow);
+    text-shadow: var(--box-shadow);
+    font-weight: 200;
+    font-size: large;
+}
+
+.statsheader ul {
+    text-decoration: none;
+    list-style: none;
+    display: flex;
+}
+
+.statsheader ul li:nth-child(1) {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    margin-top: -20;
+}
+
+.statsheader ul li:nth-child(2) {
+    margin-left: 20%;
+    margin-top: -20;
+    letter-spacing: 1px;
+}
+
+#lastscanned {
+    margin-left: 0%;
+    letter-spacing: 0;
+}
+
+#critical {
+    background-color: var(--custom-red);
+}
+
+#high {
+    background-color: var(--custom-orange);
+}
+
+#medium {
+    background-color: var(--custom-yellow);
+}
+
+#low {
+    background-color: var(--custom-blue);
+}
+
+.statsdata {
+    text-align: center;
+    background-color: var(--custom-gray);
+    color: white;
+    list-style: none;
+    height: 5vh;
+    top: 50;
+    width: 15vw;
+    position: absolute;
+    font-size: xx-large;
+    font-weight: 300;
+}
+
+
+* {font-family: "Segoe UI",Roboto,"Helvetica Neue",Arial,"Noto Sans",sans-serif,"Apple Color Emoji","Segoe UI Emoji","Segoe UI Symbol","Noto Color Emoji";}
+
+.vulntable-container {
+    margin: 20;
+}
+
+.table {
+    width: 100%;
+    margin-bottom: 1rem;
+    color: #212529
+}
+
+.table td,
+.table th {
+    padding: .75rem;
+    vertical-align: top;
+    border-top: 1px solid #dee2e6;
+    text-align: start;
+}
+
+.table td {
+font-weight: 250;
+}
+.table th {
+font-weight: 500;
+}
+
+
+#vulnTable thead tr th {
+    background-color: var(--custom-gray);
+    font-size: large;
+    font-weight: 200;
+    color: white;
+    text-align: center;
+}
+
+#vulnTable tbody tr td a {
+    color: var(--k8s-icon-color);
+}
