@@ -15,5 +15,5 @@ type Store interface {
 	UpdateReport(scanJobID string, report types.Report) error
 	SetwithTTL(key string, value []byte, ttl time.Duration) error
 	GetwithTTL(key string) ([]byte, time.Duration, error)
-	GetAllKeys() ([]string, error)
+	GetAllKeys(pattern string) ([]string, error)
 }

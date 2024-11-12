@@ -35,6 +35,11 @@ func (h *Handler) AcceptScanRequest(c *gin.Context) {
 		return
 	}
 
+	if req.Image == "" {
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "Invalid image name"})
+		return
+	}
+
 	// validate image format and webhook url format
 	h.logger.Infof("scan request for %s recieved result endpoint", req.Image)
 	// add to queue
@@ -44,7 +49,7 @@ func (h *Handler) AcceptScanRequest(c *gin.Context) {
 		c.AbortWithStatusJSON(http.StatusBadGateway, gin.H{"status": "error adding to queue"})
 		return
 	}
-	
+
 	// return id for job and 200 ok
 	c.JSON(http.StatusOK, gin.H{"ID": j.ID})
 }
@@ -64,4 +69,20 @@ func (h *Handler) GetScanStatus(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, statusResponse)
+}
+
+func (h *Handler) GetScanStatusForJob(c *gin.Context) {
+	job, err := h.store.Get(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusInternalServerError,
+			gin.H{"status": "error getting scan status"},
+		)
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"id":                    job.ID,
+		"status":                job.Status.String(),
+		"vulnerabilities_found": job.Report.TotalSeverities.Critical + job.Report.TotalSeverities.High + job.Report.TotalSeverities.Low + job.Report.TotalSeverities.Medium,
+	})
 }

@@ -57,9 +57,11 @@ func (c *controller) scan(ctx context.Context, scanJobID string, image string) (
 		return xerrors.Errorf("running trivy wrapper: %v", err)
 	}
 
-	c.log.Infof("job : %s  - status :%s", scanJobID, job.Scanned)
+	c.log.Infof("job : %s  - status :%s. Updating vulnerability report in db...", scanJobID, job.Scanned)
+
 	err = c.store.UpdateReport(scanJobID, *scanReport)
 	if err != nil {
+		c.log.Errorf("Error UpdateReport: %v", err)
 		return xerrors.Errorf("saving scan report: %v", err)
 	}
 

@@ -2,6 +2,7 @@ package logger
 
 import (
 	"os"
+	"time"
 
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
@@ -69,9 +70,8 @@ func (l *appLogger) InitLogger() {
 	encoderCfg.NameKey = "NAME"
 	encoderCfg.MessageKey = "MESSAGE"
 
+	encoderCfg.EncodeTime = zapcore.TimeEncoderOfLayout(time.RFC3339)
 	encoder = zapcore.NewConsoleEncoder(encoderCfg)
-
-	encoderCfg.EncodeTime = zapcore.ISO8601TimeEncoder
 	core := zapcore.NewCore(encoder, logWriter, zap.NewAtomicLevelAt(logLevel))
 	logger := zap.New(core, zap.AddCaller(), zap.AddCallerSkip(1))
 	l.sugarLogger = logger.Sugar()

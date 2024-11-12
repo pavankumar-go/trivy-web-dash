@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strconv"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -27,7 +28,6 @@ func main() {
 	aLog := logger.NewAppLogger("INFO")
 	aLog.InitLogger()
 	aLog.Info("Starting application with loglevel : INFO")
-
 	redisURI, ok := os.LookupEnv("REDIS")
 	if !ok {
 		aLog.Fatal("REDIS is unset")
@@ -35,7 +35,17 @@ func main() {
 
 	redisPass, ok := os.LookupEnv("REDIS_PASSWORD")
 	if !ok {
-		aLog.Info("REDIS_PASSWORD is unset")
+		aLog.Info("REDIS_PASSWORD is unset, assuming no auth")
+	}
+
+	redisTLS, ok := os.LookupEnv("REDIS_TLS")
+	if !ok {
+		aLog.Info("REDIS_TLS is unset")
+	}
+
+	redisTLSkipVerify, ok := os.LookupEnv("REDIS_TLS_SKIP_VERIFY")
+	if !ok {
+		aLog.Info("REDIS_TLS_SKIP_VERIFY is unset")
 	}
 
 	trivyServer, ok := os.LookupEnv("TRIVY_SERVER")
@@ -45,9 +55,12 @@ func main() {
 
 	tc := trivy.NewTrivyClient(aLog, trivyServer)
 
-	pool, err := redisx.NewPool(redisURI, redisPass, "5")
+	bredisTLS, _ := strconv.ParseBool(redisTLS)
+	bredisTLSkipVerify, _ := strconv.ParseBool(redisTLSkipVerify)
+
+	pool, err := redisx.NewPool(redisURI, redisPass, "5", bredisTLS, bredisTLSkipVerify)
 	if err != nil {
-		aLog.Fatal("unable to initialize redis pool")
+		aLog.Fatalf("unable to initialize redis pool: %v", err)
 	}
 
 	rstore := redisx.NewStore(pool)
@@ -64,18 +77,19 @@ func main() {
 	r.Static("./templates/css", "./templates/css")
 	r.GET("/", frontend.GetIndex())
 	r.GET("/report/*image", frontend.GetReport())
-	r.POST("/summary", frontend.GetSummary())
+	// r.POST("/summary", frontend.GetSummary())
 
 	// backend
 	r.POST("/scan/image", backendHandler.AcceptScanRequest)
 	r.GET("/scan/status", backendHandler.GetScanStatus)
+	r.GET("/scan/status/:id", backendHandler.GetScanStatusForJob)
 
 	log.Println("initializing summary & report clients")
-	if err := report.NewReportClient(redisURI, redisPass); err != nil {
+	if err := report.NewReportClient(redisURI, redisPass, bredisTLS, bredisTLSkipVerify, aLog); err != nil {
 		log.Fatal("Failed to initialize report client: ", err)
 	}
 
-	if err := summary.NewSummaryClient(redisURI, redisPass); err != nil {
+	if err := summary.NewSummaryClient(redisURI, redisPass, bredisTLS, bredisTLSkipVerify, aLog); err != nil {
 		log.Fatal("Failed to initialize summary client: ", err)
 	}
 

@@ -2,9 +2,9 @@ package frontend
 
 import (
 	"encoding/json"
-	"fmt"
 	"log"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -22,7 +22,7 @@ func GetReport() gin.HandlerFunc {
 
 		r, ttl, err := report.GetReportClient().Get(c, image)
 		if err != nil {
-			log.Fatalf("REDIS GET - %v", err)
+			log.Fatalf("REDIS REPORT GET - %v", err)
 		}
 
 		totalCritical, totalHigh, totalMedium, totalLow := 0, 0, 0, 0
@@ -53,7 +53,6 @@ func GetReport() gin.HandlerFunc {
 			},
 			LastScanAt: util.ConvertToHumanReadable((2000 * time.Hour) - ttl),
 		}
-		fmt.Println((2000 * time.Hour), ttl)
 		c.HTML(http.StatusOK, "report.html", report)
 	}
 }
@@ -62,11 +61,12 @@ func GetIndex() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		summaries, err := summary.GetSummaryClient().GetAll(c)
 		if err != nil {
-			log.Fatal("Summary: REDIS GETALL")
+			log.Fatalf("Summary: REDIS GETALL: %v", err)
 		}
 
 		totalCritical, totalHigh, totalMed, totalLow, totalImages := 0, 0, 0, 0, 0
-		for _, s := range summaries {
+		for i, s := range summaries {
+			summaries[i].Image = strings.TrimPrefix(s.Image, "vulndb/")
 			totalCritical += s.VSummary["CRITICAL"]
 			totalHigh += s.VSummary["HIGH"]
 			totalMed += s.VSummary["MEDIUM"]
@@ -97,43 +97,5 @@ func GetIndex() gin.HandlerFunc {
 		}
 
 		c.HTML(http.StatusOK, "index.html", indexData)
-	}
-}
-
-type summaryRequest struct {
-	Image string `json:"image"`
-}
-
-// used for webhook (validation webhook)
-func GetSummary() gin.HandlerFunc {
-	return func(c *gin.Context) {
-		var summaryRequest summaryRequest
-		err := c.BindJSON(&summaryRequest)
-		if err != nil {
-			c.AbortWithStatusJSON(400, gin.H{
-				"message": "docker image was not provided",
-			})
-			return
-		}
-
-		result, err := summary.GetSummaryClient().Get(c, summaryRequest.Image)
-		if err != nil {
-			c.AbortWithStatusJSON(500, gin.H{
-				"message": "internal server error: failed to get summary",
-			})
-			return
-		}
-
-		if result["CRITICAL"] != 0 || result["HIGH"] != 0 {
-			log.Printf("image: %s is vulnerable, found CRITICAL: %d, HIGH: %d vulnerabilities", summaryRequest.Image, result["CRITICAL"], result["HIGH"])
-			c.JSON(200, gin.H{
-				"vulnerable": true,
-			})
-			return
-		}
-
-		c.JSON(200, gin.H{
-			"vulnerable": false,
-		})
 	}
 }
