@@ -4,60 +4,52 @@ import (
 	"bytes"
 	"context"
 	"encoding/gob"
-	"log"
-	"os"
 	"strings"
 	"time"
 
+	"github.com/trivy-web-dash/pkg/db"
+	redisx "github.com/trivy-web-dash/pkg/db/redis"
 	"github.com/trivy-web-dash/types"
 	"github.com/trivy-web-dash/util"
-
-	"github.com/go-redis/redis/v8"
 )
 
 type SummaryClient struct {
-	client *redis.Client
+	client db.Store
 }
 
 var summaryClient *SummaryClient
 
 const expirationTime = 2000 * time.Hour
 
-func NewSummaryClient() error {
-	sc := redis.NewClient(&redis.Options{
-		Addr:        os.Getenv("REDIS"),
-		DB:          0,
-		DialTimeout: 100 * time.Millisecond,
-		ReadTimeout: 100 * time.Millisecond,
-	})
-
-	summaryClient = &SummaryClient{client: sc}
-	if _, err := summaryClient.client.Ping(context.Background()).Result(); err != nil {
+func NewSummaryClient(redisURI, redisPass string) error {
+	pool, err := redisx.NewPool(redisURI, redisPass, "2")
+	if err != nil {
 		return err
 	}
+
+	summaryClient = &SummaryClient{client: redisx.NewStore(pool)}
 	return nil
 }
 
+func GetReportClient() *SummaryClient {
+	return summaryClient
+}
+
 func GetSummaryClient() *SummaryClient {
-	if summaryClient.client == nil {
-		if err := NewSummaryClient(); err != nil {
-			log.Fatalln("Failed to initialize summary client: ", err)
-		}
-		return summaryClient
-	}
 	return summaryClient
 }
 
 func (c *SummaryClient) GetAll(ctx context.Context) ([]types.Summary, error) {
 	var result []types.Summary
-	iter := c.client.Scan(ctx, 0, "*", 0).Iterator()
-	for iter.Next(ctx) {
-		ttl := c.client.TTL(ctx, iter.Val())
-		c := c.client.Get(ctx, iter.Val())
+	values, err := c.client.GetAllKeys()
+	if err != nil {
+		return nil, err
+	}
 
-		cb, err := c.Bytes()
+	for _, value := range values {
+		cb, ttl, err := c.client.GetwithTTL(value)
 		if err != nil {
-			return result, err
+			return nil, err
 		}
 
 		b := bytes.NewReader(cb)
@@ -67,36 +59,28 @@ func (c *SummaryClient) GetAll(ctx context.Context) ([]types.Summary, error) {
 		}
 
 		r := types.Summary{
-			Image:    iter.Val(),
+			Image:    value,
 			VSummary: s,
-			LastScan: util.ConvertToHumanReadable(expirationTime - ttl.Val()),
+			LastScan: util.ConvertToHumanReadable(expirationTime - ttl),
 		}
 		result = append(result, r)
-	}
-
-	if err := iter.Err(); err != nil {
-		log.Println("error during iteration: ", err)
-		return nil, err
 	}
 
 	return result, nil
 }
 
 func (c *SummaryClient) Get(ctx context.Context, key string) (map[string]int, error) {
-	cc := c.client.Get(ctx, key)
-
-	cb, err := cc.Bytes()
+	value, _, err := c.client.GetwithTTL(key)
 	if err != nil {
 		return nil, err
 	}
-
-	b := bytes.NewReader(cb)
-	var value map[string]int
+	b := bytes.NewReader(value)
+	var summary map[string]int
 	if err := gob.NewDecoder(b).Decode(&value); err != nil {
 		return nil, err
 	}
 
-	return value, nil
+	return summary, nil
 }
 
 func (c *SummaryClient) Set(ctx context.Context, report types.Report) error {
@@ -118,5 +102,8 @@ func (c *SummaryClient) Set(ctx context.Context, report types.Report) error {
 		return err
 	}
 
-	return c.client.Set(ctx, reg[0], b.Bytes(), expirationTime).Err()
+	if err := c.client.SetwithTTL(reg[0], b.Bytes(), expirationTime); err != nil {
+		return err
+	}
+	return nil
 }

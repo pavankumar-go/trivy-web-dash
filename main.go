@@ -33,6 +33,11 @@ func main() {
 		aLog.Fatal("REDIS is unset")
 	}
 
+	redisPass, ok := os.LookupEnv("REDIS_PASSWORD")
+	if !ok {
+		aLog.Info("REDIS_PASSWORD is unset")
+	}
+
 	trivyServer, ok := os.LookupEnv("TRIVY_SERVER")
 	if !ok {
 		log.Fatal("settrivy url in env TRIVY_SERVER")
@@ -40,7 +45,7 @@ func main() {
 
 	tc := trivy.NewTrivyClient(aLog, trivyServer)
 
-	pool, err := redisx.NewPool(redisURI)
+	pool, err := redisx.NewPool(redisURI, redisPass, "5")
 	if err != nil {
 		aLog.Fatal("unable to initialize redis pool")
 	}
@@ -66,11 +71,11 @@ func main() {
 	r.GET("/scan/status", backendHandler.GetScanStatus)
 
 	log.Println("initializing summary & report clients")
-	if err := report.NewReportClient(); err != nil {
+	if err := report.NewReportClient(redisURI, redisPass); err != nil {
 		log.Fatal("Failed to initialize report client: ", err)
 	}
 
-	if err := summary.NewSummaryClient(); err != nil {
+	if err := summary.NewSummaryClient(redisURI, redisPass); err != nil {
 		log.Fatal("Failed to initialize summary client: ", err)
 	}
 

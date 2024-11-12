@@ -20,15 +20,30 @@ type store struct {
 	log  logger.Logger
 }
 
-func NewPool(redisurl string) (*redis.Pool, error) {
+func NewPool(redisurl, redisPass, redisDB string) (*redis.Pool, error) {
 	var rp = &redis.Pool{
 		MaxActive: 5,
 		MaxIdle:   5,
 		Wait:      true,
 		Dial: func() (redis.Conn, error) {
-			return redis.Dial("tcp", redisurl, redis.DialDatabase(5))
+			c, err := redis.Dial("tcp", redisurl)
+			if err != nil {
+				return nil, err
+			}
+
+			if _, err := c.Do("AUTH", redisPass); err != nil {
+				c.Close()
+				return nil, err
+			}
+
+			if _, err := c.Do("SELECT", redisDB); err != nil {
+				c.Close()
+				return nil, err
+			}
+			return c, nil
 		},
 	}
+
 	conn := rp.Get()
 	defer conn.Close()
 	_, err := conn.Do("PING")
@@ -56,7 +71,7 @@ func (s *store) Create(scanJob job.ScanJob) error {
 	key := s.getKeyForScanJob(scanJob.ID)
 	_, err = conn.Do("SET", key, string(bytes), "NX", "EX", int((1 * time.Hour).Seconds()))
 	if err != nil {
-		return xerrors.Errorf("creating scan job: %w", err)
+		return xerrors.Errorf("error scan job: %w", err)
 	}
 
 	return nil
@@ -74,7 +89,7 @@ func (s *store) update(scanJob job.ScanJob) error {
 	key := s.getKeyForScanJob(scanJob.ID)
 	_, err = conn.Do("SET", key, string(scanJobBytes), "EX", int((1 * time.Hour).Seconds()))
 	if err != nil {
-		return xerrors.Errorf("creating scan job: %w", err)
+		return xerrors.Errorf("error scan job: %w", err)
 	}
 
 	return nil
@@ -181,4 +196,44 @@ func (s *store) close(conn redis.Conn) {
 	if err != nil {
 		s.log.Error("Error while closing connection")
 	}
+}
+
+func (s *store) SetwithTTL(key string, value []byte, ttl time.Duration) error {
+	conn := s.pool.Get()
+	defer s.close(conn)
+
+	_, err := conn.Do("SET", key, value, "EX", int(ttl.Seconds()))
+	if err != nil {
+		return xerrors.Errorf("error perform redis set: %w", err)
+	}
+
+	return nil
+}
+
+func (s *store) GetwithTTL(key string) ([]byte, time.Duration, error) {
+	conn := s.pool.Get()
+	defer s.close(conn)
+
+	value, err := redis.Bytes(conn.Do("GET", key))
+	if err != nil {
+		return nil, 0, xerrors.Errorf("error perform redis get: %w", err)
+	}
+
+	ttl, err := redis.Int64(conn.Do("TTL", key))
+	if err != nil {
+		return nil, 0, xerrors.Errorf("error perform redis ttl: %w", err)
+	}
+
+	return value, time.Duration(ttl) * time.Second, nil
+}
+
+func (s *store) GetAllKeys() ([]string, error) {
+	conn := s.pool.Get()
+	defer s.close(conn)
+
+	value, err := redis.Strings(conn.Do("KEYS", "*"))
+	if err != nil {
+		return nil, xerrors.Errorf("error perform redis get all: %v", err)
+	}
+	return value, nil
 }

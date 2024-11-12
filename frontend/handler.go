@@ -2,6 +2,7 @@ package frontend
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 	"time"
@@ -18,6 +19,7 @@ func GetReport() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		image, _ := c.Params.Get("image")
 		log.Println("getting report for image:", image)
+
 		r, ttl, err := report.GetReportClient().Get(c, image)
 		if err != nil {
 			log.Fatalf("REDIS GET - %v", err)
@@ -49,9 +51,9 @@ func GetReport() gin.HandlerFunc {
 				Medium:   totalMedium,
 				Low:      totalLow,
 			},
-			LastScanAt: util.ConvertToHumanReadable((2000 * time.Hour) - *ttl),
+			LastScanAt: util.ConvertToHumanReadable((2000 * time.Hour) - ttl),
 		}
-
+		fmt.Println((2000 * time.Hour), ttl)
 		c.HTML(http.StatusOK, "report.html", report)
 	}
 }

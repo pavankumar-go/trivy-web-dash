@@ -75,12 +75,12 @@ func (c *controller) scan(ctx context.Context, scanJobID string, image string) (
 
 	err = report.GetReportClient().Set(ctx, *scanReport)
 	if err != nil {
-		log.Fatal("GetReportClient REPORT SET")
+		log.Fatalf("GetReportClient REPORT SET %v", err)
 	}
 
 	err = summary.GetSummaryClient().Set(ctx, *scanReport)
 	if err != nil {
-		log.Fatal("GetSummaryClient REDIS SET")
+		log.Fatalf("GetSummaryClient REDIS SET %v", err)
 	}
 
 	err = c.store.UpdateStatus(scanJobID, job.Done)

@@ -3,6 +3,7 @@ services:
     build: .
     environment:
       REDIS: redis:6379
+      REDIS_PASSWORD: "1234567890"
       TRIVY_SERVER: http://trivy-server:4954
     ports:
       - "8001:8001"
@@ -25,6 +26,7 @@ services:
   redis:
     image: redis:7
     container_name: redis
+    command: --requirepass "1234567890"
     ports:
       - "6379:6379"
     networks:
